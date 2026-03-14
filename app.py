@@ -1,29 +1,31 @@
-# frontend/app.py
 import streamlit as st
-import requests
-
+import pandas as pd            # <- Add this here
+from agents.itinerary_agent import itinerary_agent
+from datetime import date      # if you need to format dates
 st.title("AI Travel Planner")
 
-destination = st.text_input("Destination city")
-start_date = st.date_input("Start date")
-end_date = st.date_input("End date")
-
+destination = st.text_input("Destination")
+start_date = st.date_input("Start Date")
+end_date = st.date_input("End Date")
 if st.button("Plan Trip"):
-    # Call backend API
-    response = requests.get(
-        "http://127.0.0.1:8000/plan",
-        params={"destination": destination, "start_date": start_date, "end_date": end_date}
-    )
-    plan = response.json()
+    itinerary = itinerary_agent(destination, start_date, end_date)
 
-    st.subheader("Flight Options")
-    for f in plan["flights"]:
-        st.write(f"{f['airline']} - {f['price']} ({f['departure']} to {f['return']})")
+    # Optional: format dates
+    for f in itinerary['flights']:
+        f['departure'] = f['departure'].strftime("%Y-%m-%d")
+        f['return'] = f['return'].strftime("%Y-%m-%d")
 
-    st.subheader("Hotel Options")
-    for h in plan["hotels"]:
-        st.write(f"{h['name']} - {h['price']} - Rating: {h['rating']}")
+    # Display Flights table
+    flights_df = pd.DataFrame(itinerary['flights'])
+    st.subheader("Flights")
+    st.table(flights_df)
 
-    st.subheader("Recommended Restaurants")
-    for r in plan["restaurants"]:
-        st.write(f"{r['name']} - {r['cuisine']} - Rating: {r['rating']}")
+    # Display Hotels table
+    hotels_df = pd.DataFrame(itinerary['hotels'])
+    st.subheader("Hotels")
+    st.table(hotels_df)
+
+    # Display Restaurants list
+    st.subheader("Restaurants")
+    for r in itinerary['restaurants']:
+        st.write(f"{r['name']} ({r['cuisine']}, Rating: {r['rating']})")
